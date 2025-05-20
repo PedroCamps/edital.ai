@@ -1,0 +1,194 @@
+<!-- 
+===============================
+HTML DO COMPONENTE DE DASHBOARD
+===============================
+- Cards com métricas
+- Gráfico de visualização
+-->
+<div class="tab-content" id="dashboardTab">
+    <div class="dashboard">
+        <div class="dashboard-card">
+            <h3>Total de Arquivos</h3>
+            <div class="value" id="totalFiles">0</div>
+            <div class="description">Arquivos processados</div>
+        </div>
+        
+        <div class="dashboard-card">
+            <h3>Tabelas Extraídas</h3>
+            <div class="value" id="tablesExtracted">0</div>
+            <div class="description">Total de tabelas encontradas</div>
+        </div>
+        
+        <div class="dashboard-card">
+            <h3>Tempo de Processamento</h3>
+            <div class="value" id="processingTime">0s</div>
+            <div class="description">Tempo total de processamento</div>
+        </div>
+        
+        <div class="dashboard-card">
+            <h3>Taxa de Sucesso</h3>
+            <div class="value" id="successRate">0%</div>
+            <div class="description">Arquivos processados com sucesso</div>
+        </div>
+    </div>
+    
+    <div class="card" style="margin-top: 1.5rem;">
+        <div class="card-header">Estatísticas de Processamento</div>
+        <div class="card-body">
+            <div id="chartContainer" style="height: 300px;">
+                <!-- Chart will be displayed here -->
+                <div style="display: flex; justify-content: center; align-items: center; height: 100%; color: var(--secondary);">
+                    Carregando estatísticas...
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+/* 
+===============================
+ESTILOS CSS DO COMPONENTE DE DASHBOARD
+===============================
+- Layout de cards
+- Estilos de métricas e valores
+- Responsividade
+*/
+
+/* Grid de cards do dashboard */
+.dashboard {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+/* Card individual do dashboard */
+.dashboard-card {
+    background-color: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    padding: 1.5rem;
+}
+
+/* Título do card */
+.dashboard-card h3 {
+    margin-bottom: 1rem;
+    color: var(--secondary);
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Valor numérico do card */
+.dashboard-card .value {
+    font-size: 2rem;
+    font-weight: bold;
+    color: var(--dark);
+}
+
+/* Descrição do card */
+.dashboard-card .description {
+    color: var(--secondary);
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .dashboard {
+        grid-template-columns: 1fr;
+    }
+}
+
+/**
+ * ==============================================
+ * FUNCIONALIDADES DE DASHBOARD
+ * ==============================================
+ * Implementação das funcionalidades do dashboard de métricas
+ * e estatísticas de processamento
+ */
+
+// Seleção dos elementos do DOM relacionados ao dashboard
+const totalFilesEl = document.getElementById('totalFiles');
+const tablesExtractedEl = document.getElementById('tablesExtracted');
+const processingTimeEl = document.getElementById('processingTime');
+const successRateEl = document.getElementById('successRate');
+const chartContainer = document.getElementById('chartContainer');
+
+// Atualizar métricas do dashboard
+function updateDashboard() {
+    // Atualizar contadores
+    totalFilesEl.textContent = state.files.length;
+    tablesExtractedEl.textContent = state.tablesExtracted;
+    
+    // Calcular e atualizar tempo de processamento
+    if (state.processingStartTime && state.processingEndTime) {
+        const processingTime = (state.processingEndTime - state.processingStartTime) / 1000;
+        processingTimeEl.textContent = `${processingTime.toFixed(1)}s`;
+    }
+    
+    // Calcular e atualizar taxa de sucesso
+    if (state.files.length > 0) {
+        const successfulFiles = state.files.filter(file => file.status === 'completed').length;
+        const successRate = (successfulFiles / state.files.length) * 100;
+        successRateEl.textContent = `${successRate.toFixed(0)}%`;
+    }
+}
+
+// Criar gráfico de estatísticas (simulado)
+function createProcessingChart() {
+    // Esta é uma função simulada - em produção, aqui poderia ser usada
+    // uma biblioteca de gráficos como Chart.js ou D3.js
+    
+    // Limpar container
+    chartContainer.innerHTML = '';
+    
+    // Verificar se há dados suficientes para um gráfico
+    if (state.files.length === 0) {
+        chartContainer.innerHTML = `
+            <div style="display: flex; justify-content: center; align-items: center; height: 100%; color: var(--secondary);">
+                Sem dados disponíveis para visualização
+            </div>
+        `;
+        return;
+    }
+    
+    // Criar um gráfico dummy para demonstração
+    const chartHTML = `
+        <div style="display: flex; flex-direction: column; height: 100%;">
+            <div style="text-align: center; margin-bottom: 1rem; color: var(--secondary);">
+                Estatísticas de Processamento (${state.files.length} arquivos)
+            </div>
+            <div style="flex: 1; display: flex; align-items: flex-end;">
+                ${state.files.map((file, index) => {
+                    const height = file.tables ? (file.tables / Math.max(...state.files.map(f => f.tables))) * 200 : 20;
+                    const color = file.status === 'completed' ? 'var(--success)' : 'var(--danger)';
+                    return `
+                        <div style="flex: 1; display: flex; flex-direction: column; align-items: center; padding: 0 0.25rem;">
+                            <div style="background-color: ${color}; width: 80%; height: ${height}px; border-radius: 4px 4px 0 0;"></div>
+                            <div style="font-size: 0.75rem; margin-top: 0.5rem; text-align: center; overflow: hidden; text-overflow: ellipsis; width: 100%; white-space: nowrap;">
+                                ${file.name.length > 15 ? file.name.substring(0, 12) + '...' : file.name}
+                            </div>
+                            <div style="font-size: 0.7rem; color: var(--secondary);">${file.tables} tabelas</div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        </div>
+    `;
+    
+    chartContainer.innerHTML = chartHTML;
+}
+
+// Resetar dashboard
+function resetDashboard() {
+    totalFilesEl.textContent = '0';
+    tablesExtractedEl.textContent = '0';
+    processingTimeEl.textContent = '0s';
+    successRateEl.textContent = '0%';
+    
+    chartContainer.innerHTML = `
+        <div style="display: flex; justify-content: center; align-items: center; height: 100%; color: var(--secondary);">
+            Carregando estatísticas...
+        </div>
+    `;
+}

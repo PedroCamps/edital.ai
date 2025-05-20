@@ -1,0 +1,205 @@
+<!-- 
+===============================
+HTML DO COMPONENTE DE RESULTADOS
+===============================
+- Tabela de resultados detalhados
+- Ações para cada arquivo processado
+-->
+<div class="tab-content" id="resultsTab">
+    <div class="card">
+        <div class="card-header">Resultados da Extração</div>
+        <div class="card-body">
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Arquivo</th>
+                            <th>Tabelas</th>
+                            <th>Status</th>
+                            <th>Tempo</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultsTable">
+                        <!-- Results will be displayed here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+/* 
+===============================
+ESTILOS CSS DO COMPONENTE DE RESULTADOS
+===============================
+- Tabela de resultados
+- Estilização de células e linhas
+*/
+
+/* Container da tabela com scroll horizontal */
+.table-container {
+    overflow-x: auto;
+}
+
+/* Tabela de resultados */
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+/* Células e cabeçalhos */
+th, td {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+/* Cabeçalho da tabela */
+th {
+    background-color: #f8fafc;
+    font-weight: 500;
+}
+
+/* Hover nas linhas */
+tr:hover {
+    background-color: #f8fafc;
+}
+
+/* Botões de ação na tabela */
+td .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+    margin-right: 0.5rem;
+}
+
+/* Status na tabela */
+td .file-status {
+    display: inline-block;
+}
+
+/**
+ * ==============================================
+ * FUNCIONALIDADES DE RESULTADOS
+ * ==============================================
+ * Implementação das funcionalidades de visualização e 
+ * interação com os resultados do processamento
+ */
+
+// Seleção dos elementos do DOM relacionados aos resultados
+const resultsTable = document.getElementById('resultsTable');
+
+// Gerar resultados do processamento
+function generateResults() {
+    // Mapear os arquivos para o formato de resultados
+    state.processingResults = state.files.map(file => {
+        return {
+            fileName: file.name,
+            tables: file.tables,
+            status: file.status,
+            processingTime: file.processingTime,
+            outputPath: file.outputPath,
+            enhancedPath: file.enhancedPath,
+            matchedCount: file.matchedCount,
+            totalDescriptions: file.totalDescriptions
+        };
+    });
+    
+    // Atualizar a tabela de resultados
+    updateResultsTable();
+}
+
+// Atualizar tabela de resultados
+function updateResultsTable() {
+    resultsTable.innerHTML = '';
+    
+    if (state.processingResults.length === 0) {
+        const emptyRow = document.createElement('tr');
+        const emptyCell = document.createElement('td');
+        emptyCell.colSpan = 5;
+        emptyCell.textContent = 'Nenhum resultado disponível.';
+        emptyCell.style.textAlign = 'center';
+        emptyCell.style.padding = '2rem';
+        emptyCell.style.color = 'var(--secondary)';
+        emptyRow.appendChild(emptyCell);
+        resultsTable.appendChild(emptyRow);
+        return;
+    }
+    
+    state.processingResults.forEach(result => {
+        const row = document.createElement('tr');
+        
+        // Célula de nome do arquivo
+        const fileCell = document.createElement('td');
+        fileCell.textContent = result.fileName;
+        
+        // Célula de quantidade de tabelas
+        const tablesCell = document.createElement('td');
+        tablesCell.textContent = result.tables;
+        
+        // Célula de status
+        const statusCell = document.createElement('td');
+        const statusBadge = document.createElement('span');
+        statusBadge.className = `file-status status-${result.status}`;
+        statusBadge.textContent = result.status === 'completed' ? 'Concluído' : 'Erro';
+        statusCell.appendChild(statusBadge);
+        
+        // Célula de tempo
+        const timeCell = document.createElement('td');
+        timeCell.textContent = `${result.processingTime}s`;
+        
+        // Célula de ações
+        const actionsCell = document.createElement('td');
+        
+        // Botão para ver dados extraídos
+        if (result.status === 'completed' && result.outputPath) {
+            const viewButton = document.createElement('a');
+            viewButton.className = 'btn btn-primary';
+            viewButton.textContent = 'Ver Extração';
+            viewButton.style.padding = '0.25rem 0.5rem';
+            viewButton.style.fontSize = '0.875rem';
+            viewButton.style.marginRight = '0.5rem';
+            viewButton.href = `/download?path=${encodeURIComponent(result.outputPath)}`;
+            viewButton.target = '_blank';
+            actionsCell.appendChild(viewButton);
+        }
+        
+        // Botão para ver dados aprimorados
+        if (result.status === 'completed' && result.enhancedPath) {
+            const enhancedButton = document.createElement('a');
+            enhancedButton.className = 'btn btn-primary';
+            enhancedButton.textContent = 'Ver Processado';
+            enhancedButton.style.padding = '0.25rem 0.5rem';
+            enhancedButton.style.fontSize = '0.875rem';
+            enhancedButton.href = `/download?path=${encodeURIComponent(result.enhancedPath)}`;
+            enhancedButton.target = '_blank';
+            actionsCell.appendChild(enhancedButton);
+        }
+        
+        // Adicionar células à linha
+        row.appendChild(fileCell);
+        row.appendChild(tablesCell);
+        row.appendChild(statusCell);
+        row.appendChild(timeCell);
+        row.appendChild(actionsCell);
+        
+        // Adicionar linha à tabela
+        resultsTable.appendChild(row);
+    });
+}
+
+// Limpar tabela de resultados
+function clearResultsTable() {
+    resultsTable.innerHTML = '';
+    state.processingResults = [];
+}
+
+// Exportar resultados (simulado)
+function exportResults(format) {
+    if (state.processingResults.length === 0) {
+        alert('Não há resultados para exportar.');
+        return;
+    }
+    
+    alert(`Exportação de resultados em formato ${format} será implementada em uma versão futura.`);
+}

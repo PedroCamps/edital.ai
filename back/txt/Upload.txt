@@ -1,0 +1,254 @@
+<!-- 
+===============================
+HTML DO COMPONENTE DE UPLOAD
+===============================
+- Área de arrastar e soltar arquivos
+- Lista de arquivos
+- Botão de processamento
+-->
+<div class="card">
+    <div class="card-header">Upload de Arquivos</div>
+    <div class="card-body">
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📁</div>
+            <h3>Arraste e solte arquivos PDF aqui</h3>
+            <p>ou clique para selecionar</p>
+            <input type="file" id="fileInput" style="display: none;" accept=".pdf" multiple>
+        </div>
+        
+        <div class="file-list" id="fileList">
+            <!-- Files will be listed here -->
+        </div>
+        
+        <div style="margin-top: 1.5rem; text-align: right;">
+            <button class="btn btn-primary" id="processButton" disabled>Processar Arquivos</button>
+        </div>
+    </div>
+</div>
+
+/* 
+===============================
+ESTILOS CSS DO COMPONENTE DE UPLOAD
+===============================
+- Área de upload com drag-and-drop
+- Lista de arquivos
+- Indicadores de status
+*/
+
+/* Área de upload */
+.upload-area {
+    border: 2px dashed #cbd5e1;
+    border-radius: var(--border-radius);
+    padding: 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.upload-area:hover {
+    border-color: var(--primary);
+    background-color: #f8fafc;
+}
+
+.upload-area p {
+    margin-top: 1rem;
+    color: var(--secondary);
+}
+
+.upload-icon {
+    font-size: 3rem;
+    color: var(--secondary);
+}
+
+/* Lista de arquivos */
+.file-list {
+    margin-top: 1rem;
+}
+
+.file-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.file-item:last-child {
+    border-bottom: none;
+}
+
+.file-name {
+    flex: 1;
+    margin-right: 1rem;
+}
+
+/* Indicadores de status */
+.file-status {
+    padding: 0.25rem 0.5rem;
+    border-radius: 1rem;
+    font-size: 0.75rem;
+    background-color: #e2e8f0;
+}
+
+.status-waiting {
+    background-color: #e2e8f0;
+    color: var(--secondary);
+}
+
+.status-processing {
+    background-color: #bae6fd;
+    color: #0284c7;
+}
+
+.status-completed {
+    background-color: #bbf7d0;
+    color: #16a34a;
+}
+
+.status-error {
+    background-color: #fecaca;
+    color: #dc2626;
+}
+
+/**
+ * ==============================================
+ * FUNCIONALIDADES DE UPLOAD DE ARQUIVOS
+ * ==============================================
+ * Implementação da funcionalidade de upload, seleção e
+ * gerenciamento de arquivos PDF
+ */
+
+// Seleção dos elementos do DOM relacionados ao upload
+const uploadArea = document.getElementById('uploadArea');
+const fileInput = document.getElementById('fileInput');
+const fileList = document.getElementById('fileList');
+const processButton = document.getElementById('processButton');
+
+// Inicializar event listeners de upload
+function initUploadListeners() {
+    uploadArea.addEventListener('click', () => fileInput.click());
+    uploadArea.addEventListener('dragover', handleDragOver);
+    uploadArea.addEventListener('dragleave', handleDragLeave);
+    uploadArea.addEventListener('drop', handleDrop);
+    fileInput.addEventListener('change', handleFileSelect);
+    processButton.addEventListener('click', startProcessing);
+}
+
+// Manipulação do evento dragover
+function handleDragOver(e) {
+    e.preventDefault();
+    uploadArea.style.borderColor = 'var(--primary)';
+    uploadArea.style.backgroundColor = '#f8fafc';
+}
+
+// Manipulação do evento dragleave
+function handleDragLeave() {
+    uploadArea.style.borderColor = '#cbd5e1';
+    uploadArea.style.backgroundColor = '';
+}
+
+// Manipulação do evento drop
+function handleDrop(e) {
+    e.preventDefault();
+    console.log('Files dropped');
+    uploadArea.style.borderColor = '#cbd5e1';
+    uploadArea.style.backgroundColor = '';
+    
+    if (e.dataTransfer.files) {
+        handleFiles(e.dataTransfer.files);
+    }
+}
+
+// Manipulação da seleção de arquivos
+function handleFileSelect(e) {
+    console.log('Files selected');
+    if (e.target.files) {
+        handleFiles(e.target.files);
+    }
+}
+
+// Processamento dos arquivos selecionados
+function handleFiles(filesList) {
+    console.log('Processing files:', filesList);
+    const pdfFiles = Array.from(filesList).filter(file => file.type === 'application/pdf');
+    
+    if (pdfFiles.length === 0) {
+        alert('Por favor, selecione apenas arquivos PDF.');
+        return;
+    }
+    
+    // Adicionar arquivos ao estado
+    pdfFiles.forEach(file => {
+        if (!state.files.some(f => f.name === file.name)) {
+            state.files.push({
+                file: file,
+                name: file.name,
+                status: 'waiting',
+                tables: 0,
+                processingTime: 0
+            });
+            console.log('Added file:', file.name);
+        }
+    });
+    
+    updateFileList();
+    updateProcessButton();
+}
+
+// Atualização da lista de arquivos na UI
+function updateFileList() {
+    fileList.innerHTML = '';
+    
+    if (state.files.length === 0) {
+        fileList.innerHTML = '<p style="text-align: center; color: var(--secondary); padding: 1rem;">Nenhum arquivo selecionado</p>';
+        return;
+    }
+    
+    state.files.forEach((file, index) => {
+        const fileItem = document.createElement('div');
+        fileItem.className = 'file-item';
+        
+        const fileName = document.createElement('div');
+        fileName.className = 'file-name';
+        fileName.textContent = file.name;
+        
+        const fileStatus = document.createElement('div');
+        fileStatus.className = `file-status status-${file.status}`;
+        
+        switch (file.status) {
+            case 'waiting':
+                fileStatus.textContent = 'Aguardando';
+                break;
+            case 'processing':
+                fileStatus.textContent = 'Processando';
+                break;
+            case 'completed':
+                fileStatus.textContent = 'Concluído';
+                break;
+            case 'error':
+                fileStatus.textContent = 'Erro';
+                break;
+        }
+        
+        const removeButton = document.createElement('button');
+        removeButton.className = 'btn';
+        removeButton.innerHTML = '&times;';
+        removeButton.style.marginLeft = '0.5rem';
+        removeButton.addEventListener('click', () => {
+            state.files.splice(index, 1);
+            updateFileList();
+            updateProcessButton();
+        });
+        
+        fileItem.appendChild(fileName);
+        fileItem.appendChild(fileStatus);
+        fileItem.appendChild(removeButton);
+        
+        fileList.appendChild(fileItem);
+    });
+}
+
+// Atualização do estado do botão de processamento
+function updateProcessButton() {
+    processButton.disabled = state.files.length === 0;
+}

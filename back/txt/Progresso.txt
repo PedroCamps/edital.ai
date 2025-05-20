@@ -1,0 +1,192 @@
+<!-- 
+===============================
+HTML DO COMPONENTE DE PROGRESSO
+===============================
+- Indicador de progresso por etapas
+- Visualização do estado atual do processamento
+-->
+<div class="card">
+    <div class="card-header">Status do Processamento</div>
+    <div class="card-body">
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-step">
+                <div class="step-icon" id="step1Icon">1</div>
+                <div class="step-details">
+                    <div class="step-name">Upload de Arquivos</div>
+                    <div class="step-status" id="step1Status">Aguardando...</div>
+                </div>
+            </div>
+            
+            <div class="progress-step">
+                <div class="step-icon" id="step2Icon">2</div>
+                <div class="step-details">
+                    <div class="step-name">Extração de Tabelas</div>
+                    <div class="step-status" id="step2Status">Aguardando...</div>
+                </div>
+            </div>
+            
+            <div class="progress-step">
+                <div class="step-icon" id="step3Icon">3</div>
+                <div class="step-details">
+                    <div class="step-name">Processamento RAG</div>
+                    <div class="step-status" id="step3Status">Aguardando...</div>
+                </div>
+            </div>
+            
+            <div class="progress-step">
+                <div class="step-icon" id="step4Icon">4</div>
+                <div class="step-details">
+                    <div class="step-name">Análise Completa</div>
+                    <div class="step-status" id="step4Status">Aguardando...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+/* 
+===============================
+ESTILOS CSS DO COMPONENTE DE PROGRESSO
+===============================
+- Indicador de progresso por etapas
+- Estados visuais das etapas
+*/
+
+/* Container de progresso */
+.progress-container {
+    margin-top: 1.5rem;
+}
+
+/* Etapa de progresso */
+.progress-step {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+/* Ícone de etapa */
+.step-icon {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    background-color: #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+    color: var(--secondary);
+}
+
+/* Ícone de etapa concluída */
+.step-icon.completed {
+    background-color: var(--success);
+    color: white;
+}
+
+/* Ícone de etapa atual */
+.step-icon.current {
+    background-color: var(--primary);
+    color: white;
+}
+
+/* Detalhes da etapa */
+.step-details {
+    flex: 1;
+}
+
+/* Nome da etapa */
+.step-name {
+    font-weight: 500;
+}
+
+/* Status da etapa */
+.step-status {
+    color: var(--secondary);
+    font-size: 0.875rem;
+}
+
+/**
+ * ==============================================
+ * FUNCIONALIDADES DE PROGRESSO
+ * ==============================================
+ * Implementação da funcionalidade de indicador de progresso
+ * para visualização do estado atual do processamento
+ */
+
+// Seleção dos elementos do DOM relacionados ao progresso
+const step1Icon = document.getElementById('step1Icon');
+const step1Status = document.getElementById('step1Status');
+const step2Icon = document.getElementById('step2Icon');
+const step2Status = document.getElementById('step2Status');
+const step3Icon = document.getElementById('step3Icon');
+const step3Status = document.getElementById('step3Status');
+const step4Icon = document.getElementById('step4Icon');
+const step4Status = document.getElementById('step4Status');
+
+// Atualizar o status de uma etapa
+function updateStepStatus(step, status, message) {
+    const iconEl = document.getElementById(`step${step}Icon`);
+    const statusEl = document.getElementById(`step${step}Status`);
+    
+    // Resetar todas as classes
+    iconEl.className = 'step-icon';
+    
+    if (status === 'completed') {
+        iconEl.className = 'step-icon completed';
+        iconEl.innerHTML = '✓';
+    } else if (status === 'current') {
+        iconEl.className = 'step-icon current';
+    }
+    
+    statusEl.textContent = message;
+}
+
+// Resetar todas as etapas para o estado inicial
+function resetProgressSteps() {
+    for (let i = 1; i <= 4; i++) {
+        updateStepStatus(i, 'waiting', 'Aguardando...');
+        document.getElementById(`step${i}Icon`).innerHTML = i;
+    }
+}
+
+// Atualizar o progresso com base no estado atual
+function updateProgress(step) {
+    state.currentStep = step;
+    
+    // Resetar primeiro
+    resetProgressSteps();
+    
+    // Atualizar etapas concluídas
+    for (let i = 1; i < step; i++) {
+        updateStepStatus(i, 'completed', 'Concluído');
+    }
+    
+    // Atualizar etapa atual
+    if (step <= 4) {
+        let message = '';
+        switch (step) {
+            case 1:
+                message = 'Carregando arquivos...';
+                break;
+            case 2:
+                message = 'Extraindo tabelas...';
+                break;
+            case 3:
+                message = 'Processando RAG...';
+                break;
+            case 4:
+                message = 'Finalizando análise...';
+                break;
+        }
+        updateStepStatus(step, 'current', message);
+    }
+}
+
+// Fazer transição para a próxima etapa
+function progressToNextStep() {
+    if (state.currentStep < 4) {
+        updateProgress(state.currentStep + 1);
+        return true;
+    }
+    return false;
+}

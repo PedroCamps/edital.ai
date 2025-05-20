@@ -1,0 +1,217 @@
+/**
+ * ==============================================
+ * FUNCIONALIDADES DE RESULTADOS
+ * ==============================================
+ * Implementação das funcionalidades de visualização e 
+ * interação com os resultados do processamento
+ */
+
+// Seleção dos elementos do DOM relacionados aos resultados
+const resultsTable = document.getElementById('resultsTable');
+
+// Gerar resultados do processamento
+function generateResults() {
+    // Mapear os arquivos para o formato de resultados
+    state.processingResults = state.files.map(file => {
+        return {
+            fileName: file.name,
+            tables: file.tables,
+            status: file.status,
+            processingTime: file.processingTime,
+            outputPath: file.outputPath,
+            enhancedPath: file.enhancedPath,
+            matchedCount: file.matchedCount,
+            totalDescriptions: file.totalDescriptions
+        };
+    });
+    
+    // Atualizar a tabela de resultados
+    updateResultsTable();
+}
+
+// Atualizar tabela de resultados
+function updateResultsTable() {
+    resultsTable.innerHTML = '';
+    
+    if (state.processingResults.length === 0) {
+        const emptyRow = document.createElement('tr');
+        const emptyCell = document.createElement('td');
+        emptyCell.colSpan = 5;
+        emptyCell.textContent = 'Nenhum resultado disponível.';
+        emptyCell.style.textAlign = 'center';
+        emptyCell.style.padding = '2rem';
+        emptyCell.style.color = 'var(--secondary)';
+        emptyRow.appendChild(emptyCell);
+        resultsTable.appendChild(emptyRow);
+        return;
+    }
+    
+    state.processingResults.forEach(result => {
+        const row = document.createElement('tr');
+        
+        // Célula de nome do arquivo
+        const fileCell = document.createElement('td');
+        fileCell.textContent = result.fileName;
+        
+        // Célula de quantidade de tabelas
+        const tablesCell = document.createElement('td');
+        tablesCell.textContent = result.tables;
+        
+        // Célula de status
+        const statusCell = document.createElement('td');
+        const statusBadge = document.createElement('span');
+        statusBadge.className = `file-status status-${result.status}`;
+        statusBadge.textContent = result.status === 'completed' ? 'Concluído' : 'Erro';
+        statusCell.appendChild(statusBadge);
+        
+        // Célula de tempo
+        const timeCell = document.createElement('td');
+        timeCell.textContent = `${result.processingTime}s`;
+        
+        // Célula de ações
+        const actionsCell = document.createElement('td');
+        
+        // Botão para ver dados extraídos
+        if (result.status === 'completed' && result.outputPath) {
+            const viewButton = document.createElement('a');
+            viewButton.className = 'btn btn-primary';
+            viewButton.textContent = 'Ver Extração';
+            viewButton.style.padding = '0.25rem 0.5rem';
+            viewButton.style.fontSize = '0.875rem';
+            viewButton.style.marginRight = '0.5rem';
+            viewButton.href = `/download?path=${encodeURIComponent(result.outputPath)}`;
+            viewButton.target = '_blank';
+            actionsCell.appendChild(viewButton);
+        }
+        
+        // Botão para ver dados aprimorados
+        if (result.status === 'completed' && result.enhancedPath) {
+            const enhancedButton = document.createElement('a');
+            enhancedButton.className = 'btn btn-primary';
+            enhancedButton.textContent = 'Ver Processado';
+            enhancedButton.style.padding = '0.25rem 0.5rem';
+            enhancedButton.style.fontSize = '0.875rem';
+            enhancedButton.href = `/download?path=${encodeURIComponent(result.enhancedPath)}`;
+            enhancedButton.target = '_blank';
+            actionsCell.appendChild(enhancedButton);
+        }
+        
+        // Adicionar células à linha
+        row.appendChild(fileCell);
+        row.appendChild(tablesCell);
+        row.appendChild(statusCell);
+        row.appendChild(timeCell);
+        row.appendChild(actionsCell);
+        
+        // Adicionar linha à tabela
+        resultsTable.appendChild(row);
+    });
+}
+
+// Limpar tabela de resultados
+function clearResultsTable() {
+    resultsTable.innerHTML = '';
+    state.processingResults = [];
+}
+
+// Exportar resultados (simulado)
+function exportResults(format) {
+    if (state.processingResults.length === 0) {
+        alert('Não há resultados para exportar.');
+        return;
+    }
+    
+    alert(`Exportação de resultados em formato ${format} será implementada em uma versão futura.`);
+}
+
+/* 
+===============================
+ESTILOS CSS DO COMPONENTE DE ABAS
+===============================
+- Estilização das abas de navegação
+- Estados ativos e inativos
+*/
+
+/* Container das abas */
+.tabs {
+    display: flex;
+    border-bottom: 1px solid #e2e8f0;
+    margin-bottom: 1.5rem;
+}
+
+/* Aba individual */
+.tab {
+    padding: 0.75rem 1.5rem;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+}
+
+/* Aba ativa */
+.tab.active {
+    border-bottom-color: var(--primary);
+    color: var(--primary);
+    font-weight: 500;
+}
+
+/* Conteúdo das abas */
+.tab-content {
+    display: none;
+}
+
+/* Conteúdo ativo */
+.tab-content.active {
+    display: block;
+}
+
+/**
+ * ==============================================
+ * FUNCIONALIDADES DE NAVEGAÇÃO POR ABAS
+ * ==============================================
+ * Implementação do sistema de navegação por abas para
+ * alternar entre diferentes visualizações da aplicação
+ */
+
+// Seleção dos elementos do DOM relacionados às abas
+const tabs = document.querySelectorAll('.tab');
+const tabContents = document.querySelectorAll('.tab-content');
+
+// Inicializar event listeners das abas
+function initTabListeners() {
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const tabName = tab.getAttribute('data-tab');
+            activateTab(tabName);
+        });
+    });
+}
+
+// Ativar uma aba específica
+function activateTab(tabName) {
+    // Atualizar aba ativa
+    tabs.forEach(tab => {
+        if (tab.getAttribute('data-tab') === tabName) {
+            tab.classList.add('active');
+        } else {
+            tab.classList.remove('active');
+        }
+    });
+    
+    // Atualizar conteúdo ativo
+    tabContents.forEach(content => {
+        if (content.id === `${tabName}Tab`) {
+            content.classList.add('active');
+        } else {
+            content.classList.remove('active');
+        }
+    });
+    
+    // Executar ações específicas ao mudar de aba
+    if (tabName === 'dashboard') {
+        // Atualizar dashboard ao abrir esta aba
+        updateDashboard();
+        createProcessingChart();
+    } else if (tabName === 'results') {
+        // Atualizar resultados ao abrir esta aba
+        generateResults();
+    }
+}

@@ -1,0 +1,338 @@
+### Documentação Detalhada do Frontend
+
+---
+
+#### **1. Estrutura Geral**
+- **Tecnologias**: React + TypeScript, Next.js (App Router), CSS Modules, Gerenciamento de Estado via Hook Personalizado (`useAppState`).
+- **Fluxo Principal**: 
+  1. Upload de PDFs → 
+  2. Processamento (Extração de Tabelas + RAG) → 
+  3. Visualização de Resultados (Dashboard/Tabelas) → 
+  4. Interação via Chat Baseado em Conteúdo Processado.
+- **Componentes Principais**: 
+  - `FileUpload`, `ProcessingStatus`, `ResultsTable`, `Dashboard`, `ChatInterface`, `TabelaExtraida`, `Tabs`.
+
+---
+
+#### **2. Componentes e Serviços**
+
+---
+
+##### **2.1 `FileUpload.tsx`**
+- **Responsabilidade**: Upload de arquivos PDF via drag-and-drop ou seleção manual.
+- **Funcionalidades**:
+  - Validação de tipo (apenas PDF).
+  - Prevenção de arquivos duplicados.
+  - Atualização do estado global (`files`) via `onFilesSelected`.
+  - Botão "Processar Arquivos" que aciona `onProcessFiles`.
+- **Estado Interno**:
+  - `files`: Lista de arquivos com status (`waiting`, `processing`, `completed`, `error`).
+- **Interações**:
+  - Notifica o componente pai sobre mudanças via `useEffect`.
+  - Remove arquivos individualmente com validação em tempo real.
+
+---
+
+##### **2.2 `ProcessingStatus.tsx`**
+- **Responsabilidade**: Exibir o progresso do processamento em 4 etapas:
+  1. Upload de Arquivos
+  2. Extração de Tabelas
+  3. Processamento RAG
+  4. Análise Completa
+- **Lógica**:
+  - Recebe `currentStep` via props para determinar o estágio atual.
+  - Estiliza ícones conforme conclusão (`completed`, `current`).
+  - Mensagens dinâmicas (ex: "Extraindo tabelas...").
+
+---
+
+##### **2.3 `ResultsTable.tsx`**
+- **Responsabilidade**: Exibir resultados do processamento (arquivos processados, status, ações).
+- **Dados**:
+  - `results`: Lista de `ProcessingResult` (nome do arquivo, tabelas extraídas, tempo, status).
+- **Funcionalidades**:
+  - Links para download de arquivos processados (`outputPath`, `enhancedPath`).
+  - Estilização condicional de status (ex: `Concluído` em verde, `Erro` em vermelho).
+
+---
+
+##### **2.4 `Dashboard.tsx`**
+- **Responsabilidade**: Exibir métricas agregadas:
+  - Total de Arquivos
+  - Tabelas Extraídas
+  - Tempo de Processamento
+  - Taxa de Sucesso
+- **Dados**:
+  - Recebe valores via props (`totalFiles`, `tablesExtracted`, etc.).
+  - Exibe placeholder gráfico quando não há dados.
+
+---
+
+##### **2.5 `ChatInterface.tsx`**
+- **Responsabilidade**: Interface de chat para interação com o conteúdo processado.
+- **Funcionalidades**:
+  - Histórico de mensagens (`messages`) com estilização por papel (`user`, `system`).
+  - Input controlado com validação (não permite envio vazio).
+  - Auto-scroll para a última mensagem via `messagesEndRef`.
+  - Bloqueio de input até conclusão do processamento (`isProcessingComplete`).
+- **Integração**:
+  - Envia mensagens via `onSendMessage` (disparado por botão ou Enter).
+
+---
+
+##### **2.6 `TabelaExtraida.tsx`**
+- **Responsabilidade**: Exibir tabelas de medicamentos extraídas de PDFs.
+- **Funcionalidades**:
+  - Busca por descrição ou número do item.
+  - Ordenação por colunas (numéricas ou textuais).
+  - Cálculo automático do valor total da licitação.
+  - Formatação monetária (R$).
+- **Fluxo de Dados**:
+  - Busca dados via API usando `processedFilePath`.
+  - Extrai itens via regex específico (ex: `(\d+)\s+(\d+(?:\.\d+)?)\s+R\$([\d\,]+)...`).
+
+---
+
+##### **2.7 `Tabs.tsx`**
+- **Responsabilidade**: Alternar entre abas (`chatTab`, `dashboardTab`, `resultsTab`).
+- **Lógica**:
+  - Controla visibilidade via `selectedTab`.
+  - Estiliza a aba ativa com `styles.active`.
+  - Contém placeholders estáticos para gráficos e tabelas.
+
+---
+
+##### **2.8 `useAppState.ts`**
+- **Responsabilidade**: Gerenciar estado global da aplicação.
+- **Estrutura do Estado**:
+  ```ts
+  interface AppState {
+    files: FileInfo[];          // Arquivos em processamento
+    currentStep: number;        // Etapa atual (0-4)
+    tablesExtracted: number;    // Total de tabelas extraídas
+    conversationHistory: Message[]; // Histórico do chat
+    processingResults: ProcessingResult[]; // Resultados finais
+  }
+  ```
+- **Métodos**:
+  - `addFiles`: Atualiza a lista de arquivos.
+  - `updateFileStatus`: Altera status de um arquivo (ex: `processing` → `completed`).
+  - `addMessage`: Adiciona mensagem ao histórico do chat.
+  - `startProcessing`: Inicia processamento (muda `currentStep` e status dos arquivos).
+
+---
+
+##### **2.9 `apiService.ts`**
+- **Responsabilidade**: Comunicação com endpoints da API.
+- **Endpoints Principais**:
+  1. **`processFile`** (`POST /api/extractor/process`):
+     - Extrai tabelas de PDFs.
+     - Retorna caminhos de arquivos processados (`output_path`).
+  2. **`processRAG`** (`POST /api/rag/process`):
+     - Aplica RAG (Retrieval-Augmented Generation) para enriquecer dados.
+     - Retorna `contentId` para consultas no chat.
+  3. **`sendChatMessage`** (`POST /api/chat`):
+     - Envia mensagem ao backend usando `contentId` para contextualizar respostas.
+- **Fluxo de Erros**:
+  - Retorna `success: false` com mensagem detalhada em caso de falha.
+
+---
+
+#### **3. Fluxo de Trabalho**
+1. **Upload**:
+   - Usuário adiciona PDFs via `FileUpload`.
+   - Arquivos são validados e armazenados em `useAppState.files`.
+2. **Processamento**:
+   - Botão "Processar Arquivos" aciona `startProcessing`.
+   - `ProcessingStatus` atualiza etapas em tempo real.
+   - Após extração, dados são salvos em `processingResults`.
+3. **Pós-Processamento**:
+   - `Dashboard` exibe métricas consolidadas.
+   - `ResultsTable` permite acesso a arquivos processados.
+   - `TabelaExtraida` exibe dados estruturados de medicamentos.
+4. **Chat**:
+   - Após processamento RAG, usuário interage via `ChatInterface`.
+   - Mensagens são contextualizadas com `contentId` do arquivo.
+
+---
+
+#### **4. Estilização e UX**
+- **CSS Modules**: Classes isoladas por componente (ex: `.chatMessages`, `.dashboardCard`).
+- **Design System**:
+  - Cores definidas via CSS variables (ex: `--primary`, `--danger`).
+  - Tipografia usando fontes Geist (via `layout.tsx`).
+- **Feedback Visual**:
+  - Estados de loading/error em `TabelaExtraida`.
+  - Desabilitação condicional de inputs (`disabled={!isProcessingComplete}`).
+
+---
+
+#### **5. Observações Técnicas**
+- **Performance**:
+  - `useMemo` e `useEffect` para otimizar renderizações (ex: em `TabelaExtraida`).
+  - Auto-scroll suave no chat via `scrollIntoView({ behavior: 'smooth' })`.
+- **Segurança**:
+  - Sanitização de caminhos de arquivo em `ResultsTable` (ex: `encodeURIComponent`).
+- **Extensibilidade**:
+  - Estado global centralizado facilita adição de novas funcionalidades.
+  - Padrão de serviços (`apiService.ts`) desacopla lógica de API dos componentes.
+
+--- 
+
+Esta documentação cobre todos os aspectos críticos do frontend, permitindo que a equipe entenda as responsabilidades de cada componente, fluxos de dados e decisões de design.
+
+### Documentação Detalhada do `page.tsx`
+
+---
+
+#### **1. Visão Geral**
+- **Função**: Componente principal da aplicação, responsável por:
+  - Gerenciar o fluxo completo de processamento de arquivos.
+  - Coordenar a comunicação entre componentes.
+  - Controlar a renderização condicional das abas.
+  - Integrar todos os serviços e hooks de estado.
+- **Tecnologias**: Next.js (App Router), TypeScript, CSS Modules.
+
+---
+
+#### **2. Fluxo Principal**
+1. **Upload de Arquivos**:
+   - Usuário seleciona PDFs via `FileUpload`.
+   - Arquivos são armazenados no estado global (`state.files`).
+2. **Processamento**:
+   - Acionado pelo botão "Processar Arquivos".
+   - Extração de tabelas (`apiService.processFile`) → RAG (`apiService.processRAG`).
+   - Atualizações em tempo real via `ProcessingStatus`.
+3. **Pós-Processamento**:
+   - Dashboard exibe métricas consolidadas.
+   - `TabelaExtraida` mostra dados estruturados de medicamentos.
+   - `ResultsTable` lista resultados detalhados por arquivo.
+4. **Interação via Chat**:
+   - Após conclusão, usuário faz perguntas contextualizadas com o conteúdo processado (`apiService.sendChatMessage`).
+
+---
+
+#### **3. Funções-Chave**
+
+---
+
+##### **3.1 `handleFilesSelected`**
+- **Responsabilidade**: Atualizar a lista de arquivos no estado global.
+- **Fluxo**:
+  - Recebe arquivos do `FileUpload`.
+  - Chama `addFiles` (do `useAppState`) para atualizar `state.files`.
+
+---
+
+##### **3.2 `handleProcessFiles`**
+- **Responsabilidade**: Processar arquivos sequencialmente.
+- **Passos**:
+  1. Bloqueia processamento paralelo (`isProcessing`).
+  2. Inicia o processamento (`startProcessing`).
+  3. Para cada arquivo:
+     - **Extração de Tabelas**:
+       - Chama `apiService.processFile`.
+       - Atualiza `tables`, `processingTime`, e `outputPath`.
+     - **Processamento RAG**:
+       - Chama `apiService.processRAG` se a extração for bem-sucedida.
+       - Armazena `contentId` para consultas no chat.
+     - **Tratamento de Erros**:
+       - Atualiza status para `error` com mensagem detalhada.
+  4. Finaliza o processamento (`completeProcessing`).
+  5. Dispara análise inicial via `sendInitialPrompt`.
+
+---
+
+##### **3.3 `sendInitialPrompt`**
+- **Responsabilidade**: Enviar prompt inicial para análise automática do documento.
+- **Fluxo**:
+  - Identifica o primeiro arquivo processado com sucesso.
+  - Envia `apiService.PROMPT_BASE` (lista de critérios de licitação) via `apiService.sendChatMessage`.
+  - Exibe a resposta do backend no chat.
+
+---
+
+##### **3.4 `handleSendMessage`**
+- **Responsabilidade**: Gerenciar envio de mensagens do usuário.
+- **Passos**:
+  1. Adiciona mensagem do usuário ao histórico (`addMessage('user', ...)`).
+  2. Identifica `contentId` do arquivo processado.
+  3. Envia mensagem ao backend via `apiService.sendChatMessage`.
+  4. Exibe resposta do sistema no chat.
+
+---
+
+##### **3.5 `handleTabChange`**
+- **Responsabilidade**: Alternar entre abas.
+- **Lógica**:
+  - Atualiza `selectedTab` com base no ID do input radio.
+  - Renderiza condicionalmente `ChatInterface`, `Dashboard`, `TabelaExtraida`, ou `ResultsTable`.
+
+---
+
+#### **4. Gestão de Estado**
+- **`useAppState`**:
+  - **`state.files`**: Lista de arquivos com status, metadados e resultados.
+  - **`state.currentStep`**: Etapa atual do processamento (0-4).
+  - **`state.conversationHistory`**: Histórico de mensagens do chat.
+  - **`state.processingResults`**: Resultados consolidados para exibição.
+- **Atualizações**:
+  - `updateFileStatus`: Atualiza status/metadados de um arquivo específico.
+  - `incrementTablesExtracted`: Incrementa contador global de tabelas.
+
+---
+
+#### **5. Renderização Condicional**
+- **Abas**:
+  - **Chat (`selectedTab === 0`)**:
+    - Exibe `ChatInterface` com histórico de mensagens.
+  - **Dashboard (`selectedTab === 1`)**:
+    - Mostra métricas agregadas via `Dashboard`.
+  - **Tabela (`selectedTab === 2`)**:
+    - Renderiza `TabelaExtraida` com dados estruturados de medicamentos.
+  - **Resultados Detalhados (`selectedTab === 3`)**:
+    - Lista resultados individuais via `ResultsTable`.
+
+---
+
+#### **6. Tratamento de Erros**
+- **Extração de Tabelas**:
+  - Atualiza `status: 'error'` e `processingError` em caso de falha.
+- **Processamento RAG**:
+  - Define `ragStatus: 'error'` e `ragError` se houver falha.
+- **Chat**:
+  - Exibe mensagens de erro contextualizadas (ex: "Erro ao processar a mensagem").
+
+---
+
+#### **7. Feedback ao Usuário**
+- **Desabilitação de Botões**:
+  - "Processar Arquivos" desabilitado se `isProcessing` ou sem arquivos.
+  - Input do chat bloqueado até `state.currentStep >= 4`.
+- **Indicadores Visuais**:
+  - `ProcessingStatus` mostra ícones e mensagens dinâmicas.
+  - `TabelaExtraida` exibe loadings e mensagens de erro.
+
+---
+
+#### **8. Observações Técnicas**
+- **Sequenciamento**:
+  - Arquivos são processados um por um (`for...of`), evitando sobrecarga.
+- **Performance**:
+  - `useCallback` em `handleFilesSelected` previne renderizações desnecessárias.
+- **Segurança**:
+  - Sanitização de `contentId` e `outputPath` em chamadas à API.
+
+---
+
+### Diagrama de Fluxo Simplificado
+```plaintext
+Upload → Processamento (Extração + RAG) → Dashboard/Tabela → Chat
+           │
+           ├──✅ Sucesso: Atualiza métricas e disponibiliza chat.
+           └──❌ Erro: Exibe status detalhado e bloqueia ações dependentes.
+```
+
+---
+
+Esta documentação permite que a equipe entenda como o componente `page.tsx` orquestra todas as funcionalidades, desde o upload até a interação final via chat, garantindo clareza sobre decisões técnicas e fluxos críticos.

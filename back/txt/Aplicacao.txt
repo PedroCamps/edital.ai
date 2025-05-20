@@ -1,0 +1,41 @@
+/**
+ * ==============================================
+ * INICIALIZAÇÃO DA APLICAÇÃO
+ * ==============================================
+ * Implementação da inicialização e configuração inicial
+ * da aplicação de processamento de editais
+ */
+
+// Estado global da aplicação
+const state = {
+    files: [],                  // Lista de arquivos para processamento
+    processingStartTime: null,  // Timestamp início do processamento
+    processingEndTime: null,    // Timestamp fim do processamento
+    currentStep: 0,             // Etapa atual do processamento (1-4)
+    tablesExtracted: 0,         // Total de tabelas extraídas
+    conversationHistory: [],    // Histórico da conversa com o assistente
+    processingResults: []       // Resultados do processamento
+};
+
+// Inicializar a aplicação
+function init() {
+    console.log('Initializing app...');
+    
+    // Inicializar listeners de componentes
+    initUploadListeners();
+    initChatListeners();
+    initTabListeners();
+    
+    // Resetar componentes
+    resetProgressSteps();
+    resetDashboard();
+    clearResultsTable();
+    
+    // Desabilitar chat inicialmente
+    disableChat();
+    
+    console.log('App initialized');
+}
+
+// Inicializar a aplicação quando o DOM estiver pronto
+document.addEventListener('DOMContentLoaded', init);

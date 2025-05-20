@@ -1,0 +1,52 @@
+/**
+ * ==============================================
+ * FUNCIONALIDADES DE NAVEGAÇÃO POR ABAS
+ * ==============================================
+ * Implementação do sistema de navegação por abas para
+ * alternar entre diferentes visualizações da aplicação
+ */
+
+// Seleção dos elementos do DOM relacionados às abas
+const tabs = document.querySelectorAll('.tab');
+const tabContents = document.querySelectorAll('.tab-content');
+
+// Inicializar event listeners das abas
+function initTabListeners() {
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const tabName = tab.getAttribute('data-tab');
+            activateTab(tabName);
+        });
+    });
+}
+
+// Ativar uma aba específica
+function activateTab(tabName) {
+    // Atualizar aba ativa
+    tabs.forEach(tab => {
+        if (tab.getAttribute('data-tab') === tabName) {
+            tab.classList.add('active');
+        } else {
+            tab.classList.remove('active');
+        }
+    });
+    
+    // Atualizar conteúdo ativo
+    tabContents.forEach(content => {
+        if (content.id === `${tabName}Tab`) {
+            content.classList.add('active');
+        } else {
+            content.classList.remove('active');
+        }
+    });
+    
+    // Executar ações específicas ao mudar de aba
+    if (tabName === 'dashboard') {
+        // Atualizar dashboard ao abrir esta aba
+        updateDashboard();
+        createProcessingChart();
+    } else if (tabName === 'results') {
+        // Atualizar resultados ao abrir esta aba
+        generateResults();
+    }
+}

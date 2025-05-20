@@ -1,0 +1,327 @@
+<!-- 
+===============================
+HTML DO COMPONENTE DE CHAT
+===============================
+- Estrutura da interface do chat assistente
+- Área de mensagens
+- Campo de entrada de texto
+- Botão de envio
+-->
+<div class="tab-content active" id="chatTab">
+    <div class="card">
+        <div class="card-header">Assistente de Consulta</div>
+        <div class="card-body">
+            <div class="chat-container">
+                <div class="chat-messages" id="chatMessages">
+                    <div class="message system">
+                        Olá! Eu sou seu assistente para análise de editais. Após o processamento do PDF, você poderá me fazer perguntas sobre o conteúdo.
+                    </div>
+                </div>
+                <div class="chat-input">
+                    <input type="text" id="chatInput" placeholder="Digite sua pergunta..." disabled>
+                    <button class="btn btn-primary" id="sendButton" disabled>Enviar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+/* 
+===============================
+ESTILOS CSS DO COMPONENTE DE CHAT
+===============================
+- Layout do container de chat
+- Estilos para a área de mensagens
+- Formatação das mensagens (usuário e sistema)
+- Estilos do campo de entrada
+*/
+
+/* Container principal do chat */
+.chat-container {
+    height: 400px;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Área de exibição das mensagens */
+.chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+    background-color: #f8fafc;
+    border-radius: var(--border-radius);
+    margin-bottom: 1rem;
+}
+
+/* Estilo base para mensagens */
+.message {
+    margin-bottom: 1rem;
+    max-width: 80%;
+}
+
+/* Estilo para mensagens do usuário */
+.message.user {
+    margin-left: auto;
+    background-color: #dbeafe;
+    padding: 0.75rem;
+    border-radius: var(--border-radius);
+}
+
+/* Estilo para mensagens do sistema */
+.message.system {
+    background-color: white;
+    padding: 0.75rem;
+    border-radius: var(--border-radius);
+    border: 1px solid #e2e8f0;
+}
+
+/* Área de input do chat */
+.chat-input {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* Campo de input de texto */
+.chat-input input {
+    flex: 1;
+    padding: 0.75rem;
+    border: 1px solid #e2e8f0;
+    border-radius: var(--border-radius);
+    outline: none;
+}
+
+/* Foco no campo de input */
+.chat-input input:focus {
+    border-color: var(--primary);
+}
+
+
+/**
+ * ==============================================
+ * FUNCIONALIDADES DE CHAT
+ * ==============================================
+ * Implementação da funcionalidade de chat para interação com 
+ * o assistente baseado em IA que analisa os documentos processados
+ */
+
+// Seleção dos elementos do DOM relacionados ao chat
+const chatMessages = document.getElementById('chatMessages');
+const chatInput = document.getElementById('chatInput');
+const sendButton = document.getElementById('sendButton');
+
+// Definição do prompt base usado para análise inicial
+const PROMPT_BASE = `Validade da proposta
+Prazo de entrega
+Cidade
+Estado
+Horário de abertura da licitação
+Número de casas decimais para proposta
+Documentações necessárias para habilitação
+Objeto da licitação (qual é o escopo ou finalidade da contratação?)
+Modalidade da licitação (concorrência, tomada de preços, convite etc.)
+Valor estimado para a contratação
+Critérios de julgamento (menor preço, técnica e preço, melhor técnica etc.)
+Condições de pagamento
+Garantias exigidas (garantia de proposta, garantia contratual, etc.)
+Requisitos técnicos e de qualificação (experiência mínima, comprovação de capacidade, etc.)
+Cronograma do processo (prazos para submissão de propostas, impugnações, recursos e execução)
+Penalidades e sanções em caso de descumprimento contratual
+Critérios adicionais para habilitação (regularidade fiscal, qualificação jurídica, comprovação de capacidade técnica, etc.)
+Critérios para desclassificação ou penalização de propostas`;
+
+// Adicionar event listeners para o chat
+function initChatListeners() {
+    sendButton.addEventListener('click', sendMessage);
+    chatInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') sendMessage();
+    });
+}
+
+// Enviar prompt inicial automático após processamento
+function sendInitialPrompt() {
+    // Verificar se há arquivos processados com sucesso
+    const successfulFiles = state.files.filter(file => file.status === 'completed');
+    if (successfulFiles.length === 0) {
+        addMessage('system', 'Nenhum arquivo foi processado com sucesso para análise.');
+        return;
+    }
+    
+    // Obter o ID do conteúdo do primeiro arquivo processado com sucesso
+    const contentId = successfulFiles[0].name;
+    
+    // Usar o prompt base predefinido
+    const basePrompt = PROMPT_BASE;
+    
+    // Adicionar mensagem informativa
+    addMessage('system', 'Analisando os documentos processados...');
+    
+    // Adicionar indicador de digitação
+    const typingIndicator = document.createElement('div');
+    typingIndicator.className = 'message system';
+    typingIndicator.textContent = 'Analisando...';
+    chatMessages.appendChild(typingIndicator);
+    
+    // Preparar dados do formulário para consulta inicial
+    const formData = new FormData();
+    formData.append('content_id', contentId);
+    formData.append('query', basePrompt);
+    
+    console.log('Enviando prompt base para análise com content_id:', contentId);
+    
+    // Enviar requisição à API
+    fetch('/api/chat', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Resposta da rede não foi ok: ' + response.statusText);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Resposta da análise inicial recebida:', data);
+        
+        // Remover indicador de digitação
+        chatMessages.removeChild(typingIndicator);
+        
+        // Obter a resposta do assistente
+        const responseText = data.response || "Não foi possível analisar o documento.";
+        
+        // Adicionar mensagem do assistente
+        addMessage('system', responseText);
+        
+        // Adicionar ao histórico de conversação
+        state.conversationHistory.push({
+            role: 'assistant',
+            content: responseText
+        });
+    })
+    .catch(error => {
+        console.error('Erro ao processar análise inicial:', error);
+        
+        // Remover indicador de digitação
+        chatMessages.removeChild(typingIndicator);
+        
+        // Adicionar mensagem de erro
+        addMessage('system', 'Erro ao processar análise inicial: ' + error.message);
+    });
+}
+
+// Enviar mensagem do usuário
+function sendMessage() {
+    const message = chatInput.value.trim();
+    if (!message) return;
+    
+    // Adicionar mensagem do usuário
+    addMessage('user', message);
+    
+    // Limpar input
+    chatInput.value = '';
+    
+    // Adicionar ao histórico de conversação
+    state.conversationHistory.push({
+        role: 'user',
+        content: message
+    });
+    
+    // Enviar mensagem para o backend
+    sendMessageToBackend(message);
+}
+
+// Adicionar mensagem ao chat
+function addMessage(type, content) {
+    const messageEl = document.createElement('div');
+    messageEl.className = `message ${type}`;
+    messageEl.textContent = content;
+    
+    chatMessages.appendChild(messageEl);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+// Enviar mensagem para o backend
+function sendMessageToBackend(message) {
+    // Desabilitar input enquanto espera a resposta
+    chatInput.disabled = true;
+    sendButton.disabled = true;
+    
+    // Adicionar indicador de digitação
+    const typingIndicator = document.createElement('div');
+    typingIndicator.className = 'message system';
+    typingIndicator.textContent = 'Digitando...';
+    chatMessages.appendChild(typingIndicator);
+    
+    // Obter o ID do conteúdo do primeiro arquivo processado com sucesso
+    const contentId = state.files.find(f => f.status === 'completed')?.name || 'default_content_id';
+    
+    // Preparar os dados do formulário
+    const formData = new FormData();
+    formData.append('content_id', contentId);
+    formData.append('query', message);
+    
+    console.log('Enviando mensagem para o backend:', message, 'com content_id:', contentId);
+    
+    // Enviar requisição à API
+    fetch('/api/chat', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Resposta da rede não foi ok: ' + response.statusText);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Resposta recebida:', data);
+        
+        // Remover indicador de digitação
+        chatMessages.removeChild(typingIndicator);
+        
+        // Obter a resposta do assistente
+        const responseText = data.response || "Não foi possível obter uma resposta.";
+        
+        // Adicionar mensagem do assistente
+        addMessage('system', responseText);
+        
+        // Adicionar ao histórico de conversação
+        state.conversationHistory.push({
+            role: 'assistant',
+            content: responseText
+        });
+        
+        // Reabilitar input
+        chatInput.disabled = false;
+        sendButton.disabled = false;
+        chatInput.focus();
+    })
+    .catch(error => {
+        console.error('Erro ao processar mensagem:', error);
+        
+        // Remover indicador de digitação
+        chatMessages.removeChild(typingIndicator);
+        
+        // Adicionar mensagem de erro
+        addMessage('system', 'Erro ao processar a mensagem: ' + error.message);
+        
+        // Reabilitar input
+        chatInput.disabled = false;
+        sendButton.disabled = false;
+    });
+}
+
+// Habilitar chat após processamento completo
+function enableChat() {
+    chatInput.disabled = false;
+    sendButton.disabled = false;
+    chatInput.placeholder = "Digite sua pergunta...";
+    chatInput.focus();
+}
+
+// Desabilitar chat durante processamento
+function disableChat() {
+    chatInput.disabled = true;
+    sendButton.disabled = true;
+    chatInput.placeholder = "Aguarde o processamento dos documentos...";
+}

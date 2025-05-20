@@ -1,0 +1,64 @@
+# Backend Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+.env
+
+# Frontend Next.js
+/front-next/node_modules/
+/front-next/.next/
+/front-next/out/
+/front-next/dist/
+/front-next/.vercel
+/front-next/.env.local
+/front-next/.env.development.local
+/front-next/.env.test.local
+/front-next/.env.production.local
+/front-next/.DS_Store
+/front-next/*.pem
+/front-next/npm-debug.log*
+/front-next/yarn-debug.log*
+/front-next/yarn-error.log*
+
+# Docker
+.docker/
+docker-compose.override.yml
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Dados e uploads
+/back/data/*
+/back/embeddings/*
+/back/results/*
+/back/uploads/*
+!/back/data/.gitkeep
+!/back/embeddings/.gitkeep
+!/back/results/.gitkeep
+!/back/uploads/.gitkeep
+
+# Sistema operacional
+.DS_Store
+Thumbs.db

@@ -1,0 +1,15 @@
+fastapi
+uvicorn
+pandas
+pydantic
+python-multipart
+sqlalchemy
+httpx
+openai
+numpy
+faiss-cpu
+python-dotenv
+requests
+langchain-text-splitters
+langchain
+mistralai
